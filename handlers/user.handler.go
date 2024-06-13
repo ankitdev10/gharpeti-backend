@@ -6,76 +6,60 @@ import (
 	"errors"
 	"fmt"
 	"gharpeti/cmd/db"
+	"gharpeti/dto"
 	"gharpeti/models"
 	"gharpeti/utils"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"net/http"
-	"os"
-	"strings"
 )
 
 func CreateUser(c echo.Context) error {
-	u := new(models.User)
+	dto := c.Get("dto").(*dto.CreateUserDTO)
 
-	if err := c.Bind(u); err != nil {
-		fmt.Println(err)
-		return err
+	result := db.DB.Where("email = ?", dto.Email).First(&models.User{})
+
+	if result.RowsAffected > 0 {
+		return utils.SendError(c, 400, "User already exists")
 	}
 
-	// Check if the user already exists
-	var existingUser models.User
-	result := db.DB.Where("email = ?", u.Email).First(&existingUser)
-	if result.Error != nil {
-		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-
-			fmt.Println(result.Error)
-
-			return utils.SendError(c, http.StatusInternalServerError, "Internal server error")
-		}
-	} else {
-
-		if result.RowsAffected > 0 {
-
-			return c.JSON(http.StatusBadRequest, map[string]interface{}{
-				"error": "Email or username is already in use",
-			})
-		}
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
 	if err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Internal server error",
-		})
+		return utils.SendError(c, http.StatusInternalServerError, "Error hashing password")
 	}
 
-	u.Password = string(hashedPassword)
+	newUser := models.User{
+		FullName: dto.FullName,
+		Email:    dto.Email,
+		Password: string(hashedPassword),
+		Location: dto.Location,
+		Phone:    dto.Phone,
+		Type:     dto.Type,
+	}
 
-	err = db.DB.Create(u).Error
-	if err != nil {
+	newUser.Password = string(hashedPassword)
+
+	if err := db.DB.Create(&newUser).Error; err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Internal server error",
-		})
+		return utils.SendError(c, http.StatusInternalServerError, "Error creating User")
 	}
 
-	u.Password = ""
+	newUser.Password = ""
 
-	return c.JSON(http.StatusCreated, u)
+	return c.JSON(http.StatusCreated, newUser)
 }
-
 func GetUser(c echo.Context) error {
 	var users []models.User
 	result := db.DB.Find(&users)
 	if result.Error != nil {
 		fmt.Println(result.Error)
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Internal server error",
-		})
+		return utils.SendError(c, http.StatusInternalServerError, "Error fetching users")
 	}
 	return c.JSON(http.StatusOK, users)
 }
@@ -90,35 +74,33 @@ func GetOneUser(c echo.Context) error {
 
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 
-			return c.JSON(http.StatusInternalServerError, result.Error)
+			return utils.SendError(c, http.StatusInternalServerError, "Error fetching user")
 		} else {
-			return c.JSON(http.StatusNotFound, map[string]string{
-				"error": "User not found",
-			})
+			return utils.SendError(c, http.StatusNotFound, "User not found")
 		}
 	}
 	user.Password = ""
 	return c.JSON(http.StatusOK, user)
 }
 
+// BUG: Try binding this
 func UpdateUser(c echo.Context) error {
 	id := c.Param("id")
+	dto := c.Get("dto").(*dto.UpdateUserDTO)
 	db := db.DB
 	var existingUser models.User
 
 	findUser := db.Find(&existingUser, id)
 	if findUser.Error != nil {
 		if errors.Is(findUser.Error, gorm.ErrRecordNotFound) {
-			return c.JSON(http.StatusNotFound, "User not found")
+			return utils.SendError(c, http.StatusNotFound, "User not found")
 		}
 	}
 
 	updatedUser := existingUser
 
-	if err := c.Bind(&updatedUser); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Internal server error",
-		})
+	if err := c.Bind(&dto); err != nil {
+		return utils.SendError(c, http.StatusInternalServerError, "Can not bind request body")
 	}
 
 	updateResult := db.Model(&existingUser).Updates(&updatedUser)
@@ -136,7 +118,7 @@ func ActiveUser(c echo.Context) error {
 
 	userIDFloat64, ok := claims["id"].(float64)
 	if !ok {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch active customer"})
+		return utils.SendError(c, 403, "Invalid token")
 	}
 
 	userID := uint(userIDFloat64)
@@ -145,7 +127,7 @@ func ActiveUser(c echo.Context) error {
 	result := db.DB.First(&activeCustomer, userID)
 
 	if result.Error != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to fetch active customer"})
+		return utils.SendError(c, http.StatusInternalServerError, "Failed to fetch active customer")
 	}
 
 	activeCustomer.Password = ""
