@@ -5,17 +5,16 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"net/http"
-	"os"
-	"strings"
-
 	"gharpeti/cmd/db"
 	"gharpeti/models"
-
+	"gharpeti/utils"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"net/http"
+	"os"
+	"strings"
 )
 
 func CreateUser(c echo.Context) error {
@@ -33,9 +32,8 @@ func CreateUser(c echo.Context) error {
 		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 
 			fmt.Println(result.Error)
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": "Internal server error",
-			})
+
+			return utils.SendError(c, http.StatusInternalServerError, "Internal server error")
 		}
 	} else {
 

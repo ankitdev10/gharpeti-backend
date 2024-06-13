@@ -2,7 +2,6 @@ package routes
 
 import (
 	"gharpeti/handlers"
-
 	"github.com/labstack/echo/v4"
 )
 
