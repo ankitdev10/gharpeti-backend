@@ -16,7 +16,7 @@ func main() {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:  []string{"*"},
 		AllowHeaders:  []string{"*"},
-		ExposeHeaders: []string{"Auth-Token"},
+		ExposeHeaders: []string{"auth-token"},
 	}))
 	e.GET("/", handlers.Home)
 	db.InitDB()
