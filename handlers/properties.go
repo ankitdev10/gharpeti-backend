@@ -27,6 +27,9 @@ func CreateProperty(c echo.Context) error {
 
 func GetProperties(c echo.Context) error {
 	var properties []models.Property
+
+	authHeader := c.Request().Header.Get("Authorization")
+	fmt.Println("authheader", authHeader)
 	result := db.DB.Preload("Owner").Find(&properties)
 	if result.Error != nil {
 		fmt.Println(result.Error)

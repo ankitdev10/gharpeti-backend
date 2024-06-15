@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gharpeti/cmd/db"
 	"gharpeti/models"
+	"gharpeti/utils"
 	"log"
 	"net/http"
 	"os"
@@ -34,19 +35,19 @@ func Login(c echo.Context) error {
 	}
 
 	if creds.Email == "" || creds.Password == "" {
-		return c.JSON(403, "missing credentials")
+		return utils.SendError(c, http.StatusBadRequest, "Invalid request body")
 	}
 
 	result := db.DB.Where("email = ?", creds.Email).First(&user)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return c.JSON(http.StatusNotFound, "Email is not associated with any account.")
+			return utils.SendError(c, http.StatusNotFound, "Email is not associated with any account.")
 		}
-		return c.JSON(http.StatusInternalServerError, result.Error)
+		return utils.SendError(c, http.StatusInternalServerError, "Internal server error")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)); err != nil {
-		return c.JSON(http.StatusUnauthorized, "Wrong credentials")
+		return utils.SendError(c, http.StatusBadRequest, "Invalid credentials")
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
@@ -58,10 +59,10 @@ func Login(c echo.Context) error {
 
 	if err != nil {
 		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, "Failed to generate token")
+		return utils.SendError(c, http.StatusInternalServerError, "Internal server error")
 	}
 
-	c.Response().Header().Set(echo.HeaderAuthorization, tokenStr)
+	c.Response().Header().Set("Auth-Token", tokenStr)
 
 	return c.JSON(200, user)
 }
