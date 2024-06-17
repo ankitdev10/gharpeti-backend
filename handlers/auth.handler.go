@@ -53,7 +53,6 @@ func Login(c echo.Context) error {
 	claims := token.Claims.(jwt.MapClaims)
 
 	user.Token = ""
-	user.Password = ""
 
 	claims["user"] = user
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
@@ -69,5 +68,5 @@ func Login(c echo.Context) error {
 	c.Response().Header().Set("Auth-Token", tokenStr)
 	user.Password = ""
 	user.Token = ""
-	return c.JSON(200, user)
+	return utils.SendSuccessResponse(c, http.StatusOK, "Login successful", user)
 }

@@ -48,7 +48,7 @@ func CreateUser(c echo.Context) error {
 
 	newUser.Password = ""
 
-	return c.JSON(http.StatusCreated, newUser)
+	return utils.SendSuccessResponse(c, http.StatusCreated, "User created", newUser)
 }
 func GetUser(c echo.Context) error {
 	var users []models.User
@@ -57,7 +57,7 @@ func GetUser(c echo.Context) error {
 		fmt.Println(result.Error)
 		return utils.SendError(c, http.StatusInternalServerError, "Error fetching users")
 	}
-	return c.JSON(http.StatusOK, users)
+	return utils.SendSuccessResponse(c, http.StatusOK, "Users fetched", users)
 }
 
 func GetOneUser(c echo.Context) error {
@@ -76,7 +76,7 @@ func GetOneUser(c echo.Context) error {
 		}
 	}
 	user.Password = ""
-	return c.JSON(http.StatusOK, user)
+	return utils.SendSuccessResponse(c, http.StatusOK, "User fetched", user)
 }
 
 func UpdateUser(c echo.Context) error {
@@ -104,7 +104,7 @@ func UpdateUser(c echo.Context) error {
 			"error": "Internal server error",
 		})
 	}
-	return c.JSON(http.StatusOK, existingUser)
+	return utils.SendSuccessResponse(c, http.StatusOK, "User updated", existingUser)
 }
 
 func Me(c echo.Context) error {
@@ -115,5 +115,5 @@ func Me(c echo.Context) error {
 
 	user.Password = ""
 	user.Token = ""
-	return c.JSON(http.StatusOK, user)
+	return utils.SendSuccessResponse(c, http.StatusOK, "User fetched", user)
 }
