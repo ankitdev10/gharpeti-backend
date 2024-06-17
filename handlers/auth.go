@@ -6,16 +6,15 @@ import (
 	"gharpeti/cmd/db"
 	"gharpeti/models"
 	"gharpeti/utils"
-	"log"
-	"net/http"
-	"os"
-	"time"
-
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"log"
+	"net/http"
+	"os"
+	"time"
 )
 
 func Login(c echo.Context) error {
@@ -52,7 +51,11 @@ func Login(c echo.Context) error {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["id"] = user.ID
+
+	user.Token = ""
+	user.Password = ""
+
+	claims["user"] = user
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
 	tokenStr, err := token.SignedString([]byte(SECRET))
@@ -61,8 +64,10 @@ func Login(c echo.Context) error {
 		fmt.Println(err)
 		return utils.SendError(c, http.StatusInternalServerError, "Internal server error")
 	}
-
+	user.Token = tokenStr
+	db.DB.Save(&user)
 	c.Response().Header().Set("Auth-Token", tokenStr)
-
+	user.Password = ""
+	user.Token = ""
 	return c.JSON(200, user)
 }

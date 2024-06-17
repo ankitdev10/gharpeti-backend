@@ -10,10 +10,7 @@ import (
 	"gharpeti/models"
 	"gharpeti/utils"
 	"net/http"
-	"os"
-	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -83,7 +80,6 @@ func GetOneUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
-// BUG: Try binding this
 func UpdateUser(c echo.Context) error {
 	id := c.Param("id")
 	dto := c.Get("dto").(*dto.UpdateUserDTO)
@@ -112,52 +108,13 @@ func UpdateUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, existingUser)
 }
 
-func ActiveUser(c echo.Context) error {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-
-	userIDFloat64, ok := claims["id"].(float64)
+func Me(c echo.Context) error {
+	user, ok := c.Get("user").(models.User)
 	if !ok {
-		return utils.SendError(c, 403, "Invalid token")
+		return utils.SendError(c, http.StatusUnauthorized, "Unauthorized")
 	}
 
-	userID := uint(userIDFloat64)
-
-	var activeCustomer models.User
-	result := db.DB.First(&activeCustomer, userID)
-
-	if result.Error != nil {
-		return utils.SendError(c, http.StatusInternalServerError, "Failed to fetch active customer")
-	}
-
-	activeCustomer.Password = ""
-
-	return c.JSON(http.StatusOK, activeCustomer)
-}
-
-func ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		authHeader := c.Request().Header.Get("Authorization")
-		if authHeader == "" {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Missing token"})
-		}
-
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token format"})
-		}
-
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-
-		jwtToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-			return []byte(os.Getenv("JWT_SECRET")), nil
-		})
-
-		if err != nil || !jwtToken.Valid {
-			return c.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid token"})
-		}
-
-		c.Set("user", jwtToken)
-
-		return next(c)
-	}
+	user.Password = ""
+	user.Token = ""
+	return c.JSON(http.StatusOK, user)
 }

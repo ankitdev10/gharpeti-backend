@@ -15,6 +15,7 @@ type User struct {
 	Phone      string         `json:"phone" gorm:"not null;size:10;default:null"`
 	Type       string         `json:"type" gorm:"not null;enum:'customer','gharpeti';default:null"`
 	Properties []Property     `json:"properties" gorm:"foreignKey:OwnerID"`
+	Token      string         `json:"token"`
 	CreatedAt  time.Time      `json:"createdAt" gorm:"column:created_at"`
 	UpdatedAt  time.Time      `json:"updatedAt"`
 	DeletedAt  gorm.DeletedAt `json:"deletedAt" gorm:"index"`
