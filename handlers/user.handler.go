@@ -9,11 +9,10 @@ import (
 	"gharpeti/dto"
 	"gharpeti/models"
 	"gharpeti/utils"
-	"net/http"
-
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"net/http"
 )
 
 func CreateUser(c echo.Context) error {
