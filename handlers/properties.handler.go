@@ -3,33 +3,49 @@ package handlers
 import (
 	"fmt"
 	"gharpeti/cmd/db"
+	"gharpeti/dto"
 	"gharpeti/models"
+	"gharpeti/utils"
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
 
 func CreateProperty(c echo.Context) error {
-	property := new(models.Property)
+	dto := c.Get("dto").(*dto.CreatePropertyDTO)
 
-	if err := c.Bind(property); err != nil {
-		fmt.Println(err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+	user := c.Get("user").(models.User)
+
+	fmt.Println(user)
+
+	if user.Type != "gharpeti" {
+		return utils.SendError(c, http.StatusForbidden, "You are not authorized to create a property")
 	}
 
-	if err := db.DB.Create(property).Error; err != nil {
-		fmt.Println(err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create property"})
+	property := models.Property{
+		Title:       dto.Title,
+		Description: dto.Description,
+		Price:       dto.Price,
+		Rooms:       dto.Rooms,
+		Location:    dto.Location,
+		OwnerID:     user.ID,
+		Latitude:    dto.Latitude,
+		Longitude:   dto.Longitude,
 	}
 
-	return c.JSON(http.StatusCreated, property)
+	if err := db.DB.Create(&property).Error; err != nil {
+		fmt.Println(err)
+		return utils.SendError(c, http.StatusInternalServerError, "Error creating Property")
+	}
+
+	return utils.SendSuccessResponse(c, http.StatusCreated, "Property created", property)
 }
 
 func GetProperties(c echo.Context) error {
 	var properties []models.Property
 
-	authHeader := c.Request().Header.Get("Authorization")
-	fmt.Println("authheader", authHeader)
 	result := db.DB.Preload("Owner").Find(&properties)
 	if result.Error != nil {
 		fmt.Println(result.Error)
@@ -50,39 +66,30 @@ func GetProperty(c echo.Context) error {
 }
 
 func Search(c echo.Context) error {
-	type SearchParams struct {
-		Rooms    int    `json:"rooms"`
-		MinPrice int    `json:"minPrice"`
-		MaxPrice int    `json:"maxPrice"`
-		Location string `json:"location"`
-	}
-	var searchCriteria SearchParams
-	if err := c.Bind(&searchCriteria); err != nil {
-		fmt.Println(err)
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
-	}
-
-	query := db.DB.Model(&models.Property{})
-
-	if searchCriteria.Rooms != 0 {
-		query = query.Where("rooms = ?", searchCriteria.Rooms)
-	}
-
-	if searchCriteria.MinPrice != 0 && searchCriteria.MaxPrice != 0 {
-		query = query.Where("price BETWEEN ? AND ?", searchCriteria.MinPrice, searchCriteria.MaxPrice)
-	}
-
-	if searchCriteria.Location != "" {
-		query = query.Where("location LIKE ?", "%"+searchCriteria.Location+"%")
-	}
 
 	var properties []models.Property
-	result := query.Preload("Owner").Find(&properties)
+	latStr := c.QueryParam("lat")
+	lngStr := c.QueryParam("lng")
+	lat, _ := strconv.ParseFloat(latStr, 64)
+	lng, _ := strconv.ParseFloat(lngStr, 64)
 
-	if result.Error != nil {
-		fmt.Println(result.Error)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+	radius := 100000
+	fmt.Println(lat, lng, radius)
+
+	query := fmt.Sprintf(`
+		SELECT *
+		FROM properties
+		WHERE ST_DWithin(
+			ST_GeographyFromText('POINT(' || longitude || ' ' || latitude || ')'),
+			ST_GeographyFromText('POINT(%f %f)'),
+			%d
+		)
+	`, lng, lat, radius)
+
+	if err := db.DB.Raw(query).Find(&properties).Error; err != nil {
+		log.Fatalf("Failed to query properties: %v", err)
 	}
 
-	return c.JSON(http.StatusOK, properties)
+	fmt.Println(query)
+	return utils.SendSuccessResponse(c, http.StatusOK, "Properties fetched", properties)
 }

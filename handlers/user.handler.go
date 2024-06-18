@@ -117,3 +117,15 @@ func Me(c echo.Context) error {
 	user.Token = ""
 	return utils.SendSuccessResponse(c, http.StatusOK, "User fetched", user)
 }
+
+func Logout(c echo.Context) error {
+	user, ok := c.Get("user").(models.User)
+
+	if !ok {
+		return utils.SendError(c, http.StatusUnauthorized, "Unauthorized")
+	}
+
+	db.DB.Model(&user).Update("token", "")
+
+	return utils.SendSuccessResponse(c, http.StatusOK, "User logged out", "Sucess")
+}
