@@ -4,6 +4,7 @@ import (
 	"gharpeti/cmd/db"
 	"gharpeti/handlers"
 	"gharpeti/routes"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
