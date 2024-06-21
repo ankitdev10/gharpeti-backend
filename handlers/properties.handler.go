@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -68,28 +69,68 @@ func GetProperty(c echo.Context) error {
 func Search(c echo.Context) error {
 
 	var properties []models.Property
+
+	// filter params
 	latStr := c.QueryParam("lat")
 	lngStr := c.QueryParam("lng")
-	lat, _ := strconv.ParseFloat(latStr, 64)
-	lng, _ := strconv.ParseFloat(lngStr, 64)
+	lat, latErr := strconv.ParseFloat(latStr, 64)
+	lng, lngErr := strconv.ParseFloat(lngStr, 64)
+	radius, err := strconv.ParseInt(c.QueryParam("radius"), 10, 64)
+	rooms, err := strconv.ParseInt(c.QueryParam("rooms"), 10, 64)
+	minPrice, minPriceErr := strconv.ParseInt(c.QueryParam("minPrice"), 10, 64)
+	maxPrice, maxPriceErr := strconv.ParseInt(c.QueryParam("maxPrice"), 10, 64)
 
-	radius := 100000
-	fmt.Println(lat, lng, radius)
+	if err != nil || radius <= 0 {
+		radius = 10000 // 10 Km
+	}
+	// pagination
+	page, err := strconv.Atoi(c.QueryParam("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
 
-	query := fmt.Sprintf(`
-		SELECT *
-		FROM properties
-		WHERE ST_DWithin(
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil || limit <= 0 {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+
+	var query strings.Builder
+	query.WriteString("Select * from properties")
+
+	var conditions []string
+
+	if latErr == nil && lngErr == nil {
+
+		conditions = append(conditions, fmt.Sprintf(`
+		ST_DWithin(
 			ST_GeographyFromText('POINT(' || longitude || ' ' || latitude || ')'),
 			ST_GeographyFromText('POINT(%f %f)'),
 			%d
 		)
-	`, lng, lat, radius)
+	`, lng, lat, radius))
+	}
 
-	if err := db.DB.Raw(query).Find(&properties).Error; err != nil {
+	if rooms >= 0 {
+		conditions = append(conditions, fmt.Sprintf("rooms >= %d", rooms))
+	}
+
+	if minPriceErr == nil && maxPriceErr == nil {
+		conditions = append(conditions, fmt.Sprintf("price BETWEEN %d AND %d", minPrice, maxPrice))
+	}
+	if len(conditions) > 0 {
+		query.WriteString(" WHERE ")
+		query.WriteString(strings.Join(conditions, " AND "))
+	}
+
+	// adding paginaton
+
+	query.WriteString(fmt.Sprintf(" LIMIT %d OFFSET %d ", limit, offset))
+
+	if err := db.DB.Raw(query.String()).Find(&properties).Error; err != nil {
 		log.Fatalf("Failed to query properties: %v", err)
 	}
 
-	fmt.Println(query)
 	return utils.SendSuccessResponse(c, http.StatusOK, "Properties fetched", properties)
 }

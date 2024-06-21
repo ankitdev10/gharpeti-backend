@@ -7,21 +7,15 @@ import (
 	"gharpeti/models"
 	"gharpeti/utils"
 	"github.com/golang-jwt/jwt"
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
 func Login(c echo.Context) error {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 	SECRET := os.Getenv("JWT_SECRET")
 
 	var user models.User
