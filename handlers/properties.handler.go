@@ -61,9 +61,9 @@ func GetProperty(c echo.Context) error {
 	result := db.DB.Preload("Owner").First(&property, id)
 	if result.Error != nil {
 		fmt.Println(result.Error)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Internal server error"})
+		return utils.SendError(c, http.StatusInternalServerError, "Internal server error")
 	}
-	return c.JSON(http.StatusOK, property)
+	return utils.SendSuccessResponse(c, http.StatusOK, "Found Propery", property)
 }
 
 func Search(c echo.Context) error {
