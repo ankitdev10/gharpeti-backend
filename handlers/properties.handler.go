@@ -117,7 +117,7 @@ func Search(c echo.Context) error {
 	}
 
 	if minPriceErr == nil && maxPriceErr == nil {
-		conditions = append(conditions, fmt.Sprintf("price BETWEEN %d AND %d", minPrice, maxPrice))
+		conditions = append(conditions, fmt.Sprintf("price BETWEEN %d AND %d", minPrice*100, maxPrice*100))
 	}
 	if len(conditions) > 0 {
 		query.WriteString(" WHERE ")
