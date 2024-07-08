@@ -84,7 +84,7 @@ func UpdateProperty(c echo.Context) error {
 }
 
 func GetProperties(c echo.Context) error {
-	var properties interface{}
+	var properties models.Property
 
 	result := db.DB.Preload("Owner").Find(&properties)
 	if result.Error != nil {
