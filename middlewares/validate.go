@@ -1,9 +1,11 @@
 package middlewares
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
-	"net/http"
 )
 
 func ValidateDTO(dto interface{}) echo.MiddlewareFunc {
@@ -12,6 +14,7 @@ func ValidateDTO(dto interface{}) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if err := c.Bind(dto); err != nil {
+				fmt.Println(err)
 				return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 			}
 
@@ -43,4 +46,3 @@ func getValidationErrorMessage(err validator.FieldError) string {
 		return err.Field() + " validation failed on " + err.Tag()
 	}
 }
-

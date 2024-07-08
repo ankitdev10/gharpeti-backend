@@ -16,5 +16,5 @@ func UserRoutes(e *echo.Echo) {
 	e.PUT("/users/update/:id", handlers.UpdateUser, middlewares.VerifyAuth, middlewares.ValidateDTO(&dto.UpdateUserDTO{}))
 	e.POST("/auth/login", handlers.Login)
 	e.GET("/me", handlers.Me, middlewares.VerifyAuth)
-	e.GET("/users/logout", handlers.Logout, middlewares.VerifyAuth)
+	e.POST("/logout", handlers.Logout, middlewares.VerifyAuth)
 }
