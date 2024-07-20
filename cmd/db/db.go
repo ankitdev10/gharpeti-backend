@@ -20,12 +20,13 @@ func InitDB() {
 	dbUser := os.Getenv("POSTGRES_USER")
 	dbPass := os.Getenv("POSTGRES_PASSWORD")
 	dbName := os.Getenv("POSTGRES_DB")
-	ssl := os.Getenv("POSTGRES_SSL")
+	ssl := os.Getenv("SSL")
+	fmt.Println(ssl)
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", dbHost, dbUser, dbPass, dbName, dbPort, ssl)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		PrepareStmt: true,
 	})
-
+	fmt.Println(dsn)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -49,6 +50,11 @@ func migrations() {
 	}
 
 	err = DB.AutoMigrate(&models.Property{})
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = DB.AutoMigrate(&models.Application{})
 	if err != nil {
 		fmt.Println(err)
 	}
