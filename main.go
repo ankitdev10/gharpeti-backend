@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// Run the CREATE INDEX command
-	errr := db.DB.Exec("CREATE INDEX idx_properties_location ON properties USING GIST (ST_GeographyFromText('SRID=4326;POINT(' || longitude || ' ' || latitude || ')'))").Error
+	errr := db.DB.Exec("CREATE INDEX IF NOT EXISTS idx_properties_location ON properties USING GIST (ST_GeographyFromText('SRID=4326;POINT(' || longitude || ' ' || latitude || ')'))").Error
 	if errr != nil {
 		log.Fatal("failed to create index:", err)
 	}
