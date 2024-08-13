@@ -245,7 +245,7 @@ func GetPropertyOfOwner(c echo.Context) error {
 
 	var properties []models.Property
 
-	if err := db.DB.Preload("Images").Where("owner_id = ?", user.ID).Find(&properties).Error; err != nil {
+	if err := db.DB.Where("owner_id = ?", user.ID).Find(&properties).Error; err != nil {
 		utils.SendError(c, http.StatusInternalServerError, "Something went wrong")
 	}
 
