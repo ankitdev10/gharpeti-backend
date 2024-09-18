@@ -67,7 +67,7 @@ func UpdateProperty(c echo.Context) error {
 
 	property.Title = dto.Title
 	property.Description = dto.Description
-	property.Price = dto.Price
+	property.Price = dto.Price * 100
 	property.Rooms = dto.Rooms
 	property.Location = dto.Location
 	property.Latitude = dto.Latitude
@@ -238,6 +238,17 @@ func DeletePropery(c echo.Context) error {
 
 	return utils.SendSuccessResponse(c, http.StatusOK, "Successfully deleted", "Successfully Deleted")
 
+}
+
+func GetLatestProperty(c echo.Context) error {
+	var property []models.Property
+
+	result := db.DB.Preload("Owner").Order("created_at desc").Find(&property)
+	if result.Error != nil {
+		fmt.Println(result.Error)
+		return utils.SendError(c, http.StatusInternalServerError, "Internal server error")
+	}
+	return utils.SendSuccessResponse(c, http.StatusOK, "Found Propery", property)
 }
 
 func GetPropertyOfOwner(c echo.Context) error {

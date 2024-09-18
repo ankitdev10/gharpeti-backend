@@ -76,7 +76,7 @@ func GetUserApplications(c echo.Context) error {
 
 func GetOwnerApplications(c echo.Context) error {
 	owner := c.Get("user").(models.User)
-
+	fmt.Println("here")
 	if owner.Type != "gharpeti" {
 		return utils.SendError(c, http.StatusMethodNotAllowed, "Only Gharpeti can view their applications")
 	}
@@ -94,18 +94,19 @@ func GetOwnerApplications(c echo.Context) error {
 		}
 		return utils.SendError(c, http.StatusInternalServerError, "Failed to fetch user applications")
 	}
-
+	fmt.Println(apps)
 	return utils.SendSuccessResponse(c, http.StatusOK, "Success Owner", apps)
 }
 
 func RespondToApplication(c echo.Context) error {
 	owner := c.Get("user").(models.User)
 	appId := c.Param("appId")
-	resBody := c.Get("dto").(dto.RespondToApplication)
+	resBody := c.Get("dto").(*dto.RespondToApplication)
 	if owner.Type != "gharpeti" {
 		return utils.SendError(c, http.StatusMethodNotAllowed, "Only Gharpeti can respond to applications")
 	}
 
+	fmt.Println(resBody)
 	var app models.Application
 
 	if err := db.DB.Preload("Property").Preload("Property.Owner").First(&app, appId).Error; err != nil {
@@ -126,9 +127,10 @@ func RespondToApplication(c echo.Context) error {
 		app.Status = resBody.Status
 	}
 
-	if resBody.Status != "" {
+	if resBody.Feedback != "" {
 		app.Feedback = resBody.Feedback
 	}
+
 	if err := db.DB.Save(&app).Error; err != nil {
 		return utils.SendError(c, http.StatusInternalServerError, "Failed to update application")
 	}

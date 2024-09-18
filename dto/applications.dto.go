@@ -11,6 +11,6 @@ type CreateApplicationDTO struct {
 }
 
 type RespondToApplication struct {
-	Status   string `json:"status" validate:"required, oneof=Pending Approved Rejected"`
-	Feedback string `json:"feedback" validate:"required"`
+	Status   string `json:"status" validate:"required"`
+	Feedback string `json:"feedback"`
 }

@@ -16,5 +16,6 @@ func PropertyRoutes(e *echo.Echo) {
 	e.GET("/property/search", handlers.Search)
 	e.DELETE("/property/:id", handlers.DeletePropery, middlewares.VerifyAuth)
 	e.GET("/property/owner/all", handlers.GetPropertyOfOwner, middlewares.VerifyAuth)
+	e.GET("/property/latest", handlers.GetLatestProperty)
 	e.POST("/property/upload/:id", handlers.UploadImage, middlewares.VerifyAuth)
 }
